@@ -114,3 +114,18 @@ fun FList<Int>.increase(): FList<Int> = map {it + 1}
 fun <ITEM: Any> FList<FList<ITEM>>.flatten(): FList<ITEM>
 = foldRight(FList()) {it, acc-> it.foldRight(acc, ::Cons)}
 
+// ----- append -----
+fun <ITEM: Any> FList<ITEM>.append1(list: FList<ITEM> = FList()): FList<ITEM>
+= when(this) {
+    is Cons-> Cons(head, tail.append1(list))
+    is Nil-> list
+}
+
+inline fun <ITEM: Any> FList<ITEM>.append(list: FList<ITEM> = FList()): FList<ITEM>
+= foldRight(list) {it, l-> Cons(it, l)}
+
+inline fun <ITEM: Any> FList<ITEM>.copy(): FList<ITEM> = append()
+
+inline operator fun <ITEM: Any> FList<ITEM>.plus(list: FList<ITEM>): FList<ITEM> = append(list)
+
+// ----- drop -----
