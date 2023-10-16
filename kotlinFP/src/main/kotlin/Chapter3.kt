@@ -129,3 +129,18 @@ inline fun <ITEM: Any> FList<ITEM>.copy(): FList<ITEM> = append()
 inline operator fun <ITEM: Any> FList<ITEM>.plus(list: FList<ITEM>): FList<ITEM> = append(list)
 
 // ----- drop -----
+tailrec fun <ITEM: Any> FList<ITEM>.drop(n: Int = 1): FList<ITEM>
+= if(n > 0 && this is Cons) tail.drop(n - 1) else this
+
+tailrec fun <ITEM: Any> FList<ITEM>.dropWhile(block: (ITEM)-> Boolean): FList<ITEM>
+= if(this is Cons && block(head)) tail.dropWhile(block) else this
+
+@PublishedApi internal tailrec fun <ITEM: Any> FList<ITEM>._dropWhileIndexed(index: Int, block: (Int, ITEM)-> Boolean): FList<ITEM>
+= if(this is Cons && block(index, head)) tail._dropWhileIndexed(index + 1, block) else this
+
+inline fun <ITEM: Any> FList<ITEM>.dropWhileIndexed(noinline block: (Int, ITEM) -> Boolean): FList<ITEM>
+= _dropWhileIndexed(0, block)
+
+// ----- dropLast -----
+fun FList<Double>.sum(): Double = fold(0.0) { x, y -> x + y }
+fun FList<Int>.sum(): Int = fold(0) { x, y -> x + y }
