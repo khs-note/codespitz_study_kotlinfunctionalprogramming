@@ -2,7 +2,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class Chapter4Test {
-
     @Test
     fun test4_1() {
         val some= Option(1)
@@ -62,6 +61,17 @@ class Chapter4Test {
     fun test4_7() {
         val listEither = FList(Right(1), Right(2), Right(3))
         val eitherList = Right(FList(1, 2, 3))
+        assertEquals(traverseEither(listEither) {it}, eitherList)
         assertEquals(sequenceEither(listEither), eitherList)
+    }
+
+    @Test
+    fun test4_8() {
+        val name = mkName("khs")
+        val age = mkAge(11)
+        val person = mkPerson("khs", 11)
+        assertEquals(name, Right(Name("khs")))
+        assertEquals(age, Right(Age(11)))
+        assertEquals(person, Right(Person(Name("khs"), Age(11))))
     }
 }

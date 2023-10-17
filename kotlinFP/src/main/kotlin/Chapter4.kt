@@ -1,15 +1,14 @@
 import Option.None
 import Option.Some
-import java.time.OffsetDateTime
 import kotlin.math.pow
 
-sealed class Option<out ITEM> {
-    data class Some<out ITEM>(val item: ITEM): Option<ITEM>()
-    data object None: Option<Nothing>()
+sealed class Option<out ITEM: Any> {
+    data class Some<out ITEM: Any>(val item: ITEM) : Option<ITEM>()
+    data object None : Option<Nothing>()
 
     companion object {
-        operator fun <ITEM> invoke(item: ITEM) = Some(item)
-        fun <ITEM> none(): Option<ITEM> = None
+        operator fun <ITEM: Any> invoke(item: ITEM) = Some(item)
+        fun <ITEM: Any> none(): Option<ITEM> = None
     }
 }
 
@@ -27,27 +26,32 @@ sealed class Option<out ITEM> {
   그렇지 않은 경우 두 번째 Option을 반환한다.
 */
 
-fun <ITEM, OTHER> Option<ITEM>.map(f: (ITEM)-> OTHER): Option<OTHER>
-= when(this) {
+fun <ITEM: Any, OTHER: Any> Option<ITEM>.map(
+    f: (ITEM) -> OTHER
+): Option<OTHER> = when (this) {
     is Some -> Some(f(item))
     is None -> None
 }
 
-fun <ITEM> Option<ITEM>.getOrElse(default: ()-> ITEM): ITEM
-= when(this) {
-    is Some-> item
-    is None-> default()
+fun <ITEM: Any> Option<ITEM>.getOrElse(
+    default: () -> ITEM
+): ITEM = when (this) {
+    is Some -> item
+    is None -> default()
 }
 
-fun <ITEM, OTHER> Option<ITEM>.flatMap(f: (ITEM)-> Option<OTHER>): Option<OTHER>
-= map(f).getOrElse { None }
+fun <ITEM: Any, OTHER: Any> Option<ITEM>.flatMap(
+    f: (ITEM) -> Option<OTHER>
+): Option<OTHER> = map(f).getOrElse { None }
 
-fun <ITEM> Option<ITEM>.orElse(ob: ()-> Option<ITEM>): Option<ITEM>
-= map() { Option(it) }.getOrElse { ob() }
+fun <ITEM: Any> Option<ITEM>.orElse(
+    ob: () -> Option<ITEM>
+): Option<ITEM> = map() { Option(it) }.getOrElse { ob() }
 
-fun <ITEM> Option<ITEM>.filter(f: (ITEM)-> Boolean): Option<ITEM>
-= flatMap { v ->
-    if(f(v)) Option(v) else None
+fun <ITEM: Any> Option<ITEM>.filter(
+    f: (ITEM) -> Boolean
+): Option<ITEM> = flatMap { v ->
+    if (f(v)) Option(v) else None
 }
 
 /*
@@ -57,11 +61,9 @@ flatMap을 사용해 variance 함수를 구현하라.
 코드로 쓰면(x - m).pow(2)라 할 수 있다.
 리스트 4.2에서 만든 mean 메서드를 사용해 이 함수를 구현할 수 있다.
 */
-fun mean(xs: FList<Double>): Option<Double>
-= if(xs == FList<Double>()) None else Option(xs.sum() / xs.size)
+fun mean(xs: FList<Double>): Option<Double> = if (xs == FList<Double>()) None else Option(xs.sum() / xs.size)
 
-fun variance(xs: FList<Double>): Option<Double>
-= mean(xs).flatMap { v ->
+fun variance(xs: FList<Double>): Option<Double> = mean(xs).flatMap { v ->
     mean(xs.map { (it - v).pow(2) })
 }
 
@@ -71,13 +73,18 @@ fun variance(xs: FList<Double>): Option<Double>
 두 Option중 어느 하나라도 None이면 반환값도 None이다.
 다음은 map2의 시그니처다.
 */
-fun <P1, P2, RESULT> map2(p1: Option<P1>, p2: Option<P2>, f: (P1, P2)-> RESULT): Option<RESULT>
-        = p1.flatMap { v1 ->
+fun <P1: Any, P2: Any, RESULT: Any> map2(
+    p1: Option<P1>,
+    p2: Option<P2>,
+    f: (P1, P2) -> RESULT
+): Option<RESULT> = p1.flatMap { v1 ->
     p2.map { v2 -> f(v1, v2) }
 }
 
-fun <ITEM, P, RESULT> Option<ITEM>.mapTow(b: Option<P>, f: (ITEM, P)-> RESULT): Option<RESULT>
-        = flatMap { v1 ->
+fun <ITEM: Any, P: Any, RESULT: Any> Option<ITEM>.mapTow(
+    b: Option<P>,
+    f: (ITEM, P) -> RESULT
+): Option<RESULT> = flatMap { v1 ->
     b.map { v2 -> f(v1, v2) }
 }
 
@@ -89,10 +96,10 @@ fun <ITEM, P, RESULT> Option<ITEM>.mapTow(b: Option<P>, f: (ITEM, P)-> RESULT): 
 그렇지 않으면 모든 정상 값이 모인 리스트가 들어 있는 Some이 결과값이어야 한다.
 시그니처는 다음과 같다.
 */
-fun <ITEM: Any> sequence(xs: FList<Option<ITEM>>): Option<FList<ITEM>>
-= xs.foldRight(Option(FList())) {oa1: Option<ITEM>, oa2: Option<FList<ITEM>> ->
-    map2(oa1, oa2) {a1: ITEM, a2: FList<ITEM> -> FList(a1).append(a2)}
-}
+fun <ITEM: Any> sequence(xs: FList<Option<ITEM>>): Option<FList<ITEM>> =
+    xs.foldRight(Option(FList())) { oa1: Option<ITEM>, oa2: Option<FList<ITEM>> ->
+        map2(oa1, oa2) { a1: ITEM, a2: FList<ITEM> -> FList(a1).append(a2) }
+    }
 
 /*
 연습문제 4.5
@@ -100,69 +107,105 @@ traverse 함수를 구현하라.
 map을 한 다음에 sequence를 하면 간단하지만, 리스트를 단 한번만 순회하는 더 효율적인 구현을 시도해보라.
 코드를 작성하고 나면 sequence를 traverse를 사용해 구현하라.
 */
-fun <ITEM: Any, OTHER: Any> traverse(xa: FList<ITEM>, f: (ITEM)-> Option<OTHER>): Option<FList<OTHER>>
-= when(xa) {
-    is FList.Cons->
-        map2(f(xa.head), traverse(xa.tail, f)) {b, xb ->
-            FList(b).append(xb)
-        }
-    is FList.Nil-> Option(FList.Nil)
+fun <ITEM : Any, OTHER : Any> traverse(
+    xa: FList<ITEM>,
+    f: (ITEM) -> Option<OTHER>
+): Option<FList<OTHER>> = xa.foldRight(Option(FList())) { curr, acc ->
+    val list = f(curr).map { FList(it) }.getOrElse { FList() }
+    acc.map { list.append(it) }
 }
+//= when (xa) {
+//    is FList.Cons ->
+//        map2(f(xa.head), traverse(xa.tail, f)) { b, xb ->
+//            FList(b).append(xb)
+//        }
+//
+//    is FList.Nil -> Option(FList.Nil)
+//}
 
-fun <ITEM: Any> sequence2(xs: FList<Option<ITEM>>): Option<FList<ITEM>>
-= traverse(xs) {it}
+fun <ITEM : Any> sequence2(xs: FList<Option<ITEM>>): Option<FList<ITEM>> = traverse(xs) { it }
 
 /*
 연습문제 4.6
 Right값에 대해 활용할 수 있는 map, flatMap, orElse, map2를 구현하라.
 */
 sealed class Either<out LEFT, out RIGHT>
-data class Left<out LEFT>(val value: LEFT): Either<LEFT, Nothing>()
-data class Right<out RIGHT>(val value: RIGHT): Either<Nothing, RIGHT>()
+data class Left<out LEFT>(val value: LEFT) : Either<LEFT, Nothing>()
+data class Right<out RIGHT>(val value: RIGHT) : Either<Nothing, RIGHT>()
 
-fun <LEFT, RIGHT, OTHER> Either<LEFT, RIGHT>.map(f: (RIGHT)-> OTHER): Either<LEFT, OTHER>
-= when(this) {
-    is Left-> this
-    is Right-> Right(f(value))
+fun <LEFT, RIGHT, OTHER> Either<LEFT, RIGHT>.map(f: (RIGHT) -> OTHER): Either<LEFT, OTHER> = when (this) {
+    is Left -> this
+    is Right -> Right(f(value))
 }
 
-fun <LEFT, RIGHT, OTHER> Either<LEFT, RIGHT>.flatMap(f: (RIGHT)-> Either<LEFT, OTHER>): Either<LEFT, OTHER>
-= when(this) {
-    is Left-> this
-    is Right-> f(value)
+fun <LEFT, RIGHT, OTHER> Either<LEFT, RIGHT>.flatMap(
+    f: (RIGHT) -> Either<LEFT, OTHER>
+): Either<LEFT, OTHER> = when (this) {
+    is Left -> this
+    is Right -> f(value)
 }
 
-fun <LEFT, RIGHT> Either<LEFT, RIGHT>.orElse(f: ()-> Either<LEFT, RIGHT>): Either<LEFT, RIGHT>
-= when(this) {
-    is Left-> f()
-    is Right-> this
+fun <LEFT, RIGHT> Either<LEFT, RIGHT>.orElse(
+    f: () -> Either<LEFT, RIGHT>
+): Either<LEFT, RIGHT> = when (this) {
+    is Left -> f()
+    is Right -> this
 }
 
 fun <LEFT, RIGHT1, RIGHT2, OTHER> mapEither(
     e1: Either<LEFT, RIGHT1>,
     e2: Either<LEFT, RIGHT2>,
-    f: (RIGHT1, RIGHT2)-> OTHER
-): Either<LEFT, OTHER>
-= e1.flatMap { r1 -> e2.map { r2 -> f(r1, r2) }}
+    f: (RIGHT1, RIGHT2) -> OTHER
+): Either<LEFT, OTHER> = e1.flatMap { r1 -> e2.map { r2 -> f(r1, r2) } }
 
 /*
 연습문제 4.7
 Either에 대한 sequence와 traverse를 구현하라.
 두 함수는 오류가 생긴 경우 최초로 발생한 오류를 반환해야 한다.
 */
-fun <LEFT, ITEM: Any, OTHER: Any> traverseEither(xs: FList<ITEM>, f: (ITEM)-> Either<LEFT, OTHER>): Either<LEFT, FList<OTHER>>
-= when(xs) {
-    is FList.Nil-> Right(FList<OTHER>())
-    is FList.Cons->
-        mapEither(f(xs.head), traverseEither(xs.tail, f)) { b, xb ->
-            FList(b).append(xb)
-        }
+fun <LEFT: Any, RIGHT: Any> Either<LEFT, RIGHT>.getOrElse(
+    default: () -> RIGHT
+): RIGHT = when (this) {
+    is Left -> default()
+    is Right -> value
 }
 
-fun <E, A: Any> sequenceEither(es: FList<Either<E, A>>): Either<E, FList<A>>
-= traverseEither(es) {it}
+fun <LEFT: Any, ITEM : Any, OTHER : Any> traverseEither(
+    xs: FList<ITEM>,
+    f: (ITEM) -> Either<LEFT, OTHER>
+): Either<LEFT, FList<OTHER>> = xs.foldRight(Right(FList())) { curr, acc ->
+    val list = f(curr).map { FList(it) }.getOrElse { FList() }
+    acc.map { list.append(it) }
+}
+//= when (xs) {
+//    is FList.Nil -> Right(FList())
+//    is FList.Cons -> mapEither(f(xs.head), traverseEither(xs.tail, f)) { b, xb ->
+//        FList(b).append(xb)
+//    }
+//}
+
+fun <LEFT : Any, RIGHT : Any> sequenceEither(es: FList<Either<LEFT, RIGHT>>): Either<LEFT, FList<RIGHT>> =
+    traverseEither(es) { it }
 
 /*
 연습문제 4.8
-
+리스트 4.8에서는 이름과 나이가 모두 잘못되더라도 map2가 오류를 하나만 보고할 수 있다.
+두 오류를 모두 보고하게 하려면 어디를 바꿔야 할까?
+map2나 mkPerson의 시그니처를 바꿔야 할까, 아니면 Either보다 이 추가 요구 사항을 더 잘 다룰 수 있는
+추가 구조를 포함하는 새로운 데이터 타입을 만들어야 할까?
+이 데이터 타입에 대해 orElse, traverse, sequence는 어떻게 다르게 동작해야 할까?
 */
+data class Name(val value: String)
+data class Age(val value: Int)
+data class Person(val name: Name, val age: Age)
+
+fun mkName(name: String): Either<String, Name> =
+    if(name.isBlank()) Left("Name is Empty.")
+    else Right(Name(name))
+
+fun mkAge(age: Int): Either<String, Age> =
+    if(age < 0) Left("Age is out of range.")
+    else Right(Age(age))
+
+fun mkPerson(name: String, age: Int): Either<String, Person> =
+    mapEither(mkName(name), mkAge(age)) { n, a -> Person(n, a) }
